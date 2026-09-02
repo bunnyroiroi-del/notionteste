@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reading Journal Counters</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+    background: #fdf7fb;
+  }
+
+  .grid {
+    width: min(900px, 100%);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .card {
+    min-width: 0;
+    position: relative;
+    padding: 18px 14px 14px;
+    border-radius: 24px;
+    background: linear-gradient(145deg, #fff9fc, #f8eafa);
+    border: 1px solid rgba(183, 139, 180, .22);
+    box-shadow: 0 10px 24px rgba(132, 92, 132, .13);
+    text-align: center;
+  }
+
+  .icon { font-size: 25px; margin-bottom: 5px; }
+  .title {
+    min-height: 38px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #76566f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .value {
+    margin: 8px 0 10px;
+    font-size: 34px;
+    line-height: 1;
+    font-weight: 800;
+    color: #5e465c;
+    letter-spacing: -1px;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+
+  button {
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+
+  .arrow {
+    width: 34px;
+    height: 30px;
+    border-radius: 12px;
+    background: #eedbf0;
+    color: #6f5070;
+    font-size: 18px;
+    box-shadow: 0 3px 8px rgba(110, 76, 108, .12);
+  }
+
+  .arrow:hover, .reset:hover { transform: translateY(-1px); }
+  .arrow:active, .reset:active { transform: scale(.96); }
+
+  .reset {
+    margin-top: 9px;
+    padding: 4px 9px;
+    border-radius: 10px;
+    background: transparent;
+    color: #9a7d96;
+    font-size: 11px;
+  }
+
+  .reset:hover { background: rgba(255,255,255,.65); }
+
+  .hint {
+    position: fixed;
+    bottom: 6px;
+    right: 9px;
+    font-size: 9px;
+    color: #b39aaa;
+    opacity: .8;
+  }
+
+  @media (max-width: 720px) {
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 380px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* Single-card mode: ?card=livros / paginas / nota / favoritos */
+  body.single .grid {
+    width: 250px;
+    display: block;
+  }
+  body.single .card { display: none; }
+  body.single .card.active { display: block; }
+</style>
+</head>
+<body>
+<div class="grid">
+
+  <section class="card" data-key="livros" data-default="0" data-step="1">
+    <div class="icon">📚</div>
+    <div class="title">Livros lidos</div>
+    <div class="value">0</div>
+    <div class="controls">
+      <button class="arrow down" aria-label="Diminuir">↓</button>
+      <button class="arrow up" aria-label="Aumentar">↑</button>
+    </div>
+    <button class="reset">reset</button>
+  </section>
+
+  <section class="card" data-key="paginas" data-default="0" data-step="1">
+    <div class="icon">📄</div>
+    <div class="title">Páginas lidas</div>
+    <div class="value">0</div>
+    <div class="controls">
+      <button class="arrow down" aria-label="Diminuir">↓</button>
+      <button class="arrow up" aria-label="Aumentar">↑</button>
+    </div>
+    <button class="reset">reset</button>
+  </section>
+
+  <section class="card" data-key="nota" data-default="0" data-step="0.1">
+    <div class="icon">⭐</div>
+    <div class="title">Nota média</div>
+    <div class="value">0,0</div>
+    <div class="controls">
+      <button class="arrow down" aria-label="Diminuir">↓</button>
+      <button class="arrow up" aria-label="Aumentar">↑</button>
+    </div>
+    <button class="reset">reset</button>
+  </section>
+
+  <section class="card" data-key="favoritos" data-default="0" data-step="1">
+    <div class="icon">💕</div>
+    <div class="title">Favoritos</div>
+    <div class="value">0</div>
+    <div class="controls">
+      <button class="arrow down" aria-label="Diminuir">↓</button>
+      <button class="arrow up" aria-label="Aumentar">↑</button>
+    </div>
+    <button class="reset">reset</button>
+  </section>
+
+</div>
+
+<div class="hint">♡ reading journal</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const requestedCard = params.get("card");
+
+  if (requestedCard) {
+    document.body.classList.add("single");
+  }
+
+  document.querySelectorAll(".card").forEach(card => {
+    const key = card.dataset.key;
+    const defaultValue = Number(card.dataset.default);
+    const step = Number(card.dataset.step);
+    const valueEl = card.querySelector(".value");
+
+    if (requestedCard && key === requestedCard) {
+      card.classList.add("active");
+    }
+
+    const storageKey = "readingJournal_" + key;
+    let value = Number(localStorage.getItem(storageKey));
+    if (!Number.isFinite(value)) value = defaultValue;
+
+    function render() {
+      if (key === "nota") {
+        valueEl.textContent = value.toFixed(1).replace(".", ",");
+      } else {
+        valueEl.textContent = Math.round(value).toLocaleString("pt-BR");
+      }
+      localStorage.setItem(storageKey, String(value));
+    }
+
+    card.querySelector(".up").addEventListener("click", () => {
+      value = Math.round((value + step) * 100) / 100;
+      render();
+    });
+
+    card.querySelector(".down").addEventListener("click", () => {
+      value = Math.max(0, Math.round((value - step) * 100) / 100);
+      render();
+    });
+
+    card.querySelector(".reset").addEventListener("click", () => {
+      value = defaultValue;
+      render();
+    });
+
+    render();
+  });
+</script>
+</body>
+</html>
